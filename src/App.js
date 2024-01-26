@@ -1,44 +1,65 @@
-import React, { useState } from 'react';
 import './App.css';
-import Expenses from './components/Expenses/Expenses.js';
-import NewExpense from './components/NewExpense/NewExpense.js'
+import { Expenses } from './components/Expenses/Expenses';
+import NewExpense from './components/NewExpense/NewExpense';
+import React, { useState, useEffect } from 'react';
+import Error from "./components/UI/Error"
 
-const DUMMY_EXPEMSES = [
-    {
-      id: 'e1',
-      date: new Date(2025, 1, 18),
-      title: "New book",
-      amount: 30.99
-    },
-    {
-      id: 'e2',
-      date: new Date(2024, 10, 10),
-      title: "New jeans",
-      amount: 99.99
-    },
-     {
-      id: 'e3',
-      date: new Date(2024, 3, 10),
-      title: "New bag",
-      amount: 199.99
-    }
-  ]
 
 const App = () => {
-  const [expenses, setExpenses] = useState(DUMMY_EXPEMSES)
+  const [isFetching, setIsFetching] = useState(false)
+  const [expenses, setExpenses] = useState([])
+  const [error, setError] = useState(null)
+  const [showError, setShowError] = useState(false)
+
+  useEffect(() => {
+    const getExpenses = async () => {
+      setIsFetching(true)
+      try {
+        const response = await fetch('http://localhost:3005/expensss')
+        const responseData = await response.json()
+        if(!response.ok){
+          throw new Error('Failed fetching data')
+        }
+        setExpenses(responseData.expenses)
+      } catch (error) {
+        setError({
+          title: 'An error occurred!',
+          message: 'Failed fetching expenses data, please try again later.'
+        })
+        setShowError(true)
+      }
+      setIsFetching(false)
+    }
+    getExpenses()
+  }, [])
+
+
+  const errorHandler = () => {
+    setError(null)
+    setShowError(false)
+  }
 
   const addExpenseHandler = (expense) => {
     console.log('In App.js')
     console.log(expense)
-    setExpenses((previousExpenses) => {
-      return [expense, ...previousExpenses]
-    })
+    setExpenses((previousExpenses) => {return [expense, ...previousExpenses]})
   }
 
   return (
     <div className="App">
-      <NewExpense onAddExpense={addExpenseHandler}/>
-      <Expenses expenses={expenses}/>
+      { showError && (
+          <Error
+            title={error.title}
+            message={error.message}
+            onConfirm={errorHandler}
+          />
+        )
+      }
+      <NewExpense onAddExpense={addExpenseHandler}></NewExpense>
+      <Expenses
+      isLoading={isFetching}
+      expenses={expenses}
+      />
     </div>
   );
 }
